@@ -1,0 +1,38 @@
+{
+  "name": "ikatoo-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Milton Carlos Katoo",
+  "license": "MIT",
+  "scripts": {
+    "build": "rimraf dist && swc src --out-dir dist",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "lint": "eslint --fix src",
+    "test": "rimraf sqlite.db && NODE_ENV=test jest --no-cache ./src",
+    "test:coverage": "rimraf sqlite.db,coverage && NODE_ENV=test jest ./src --coverage",
+    "dev": "NODE_ENV=test tsnd -r tsconfig-paths/register --watch src/ --respawn --transpile-only src/index.ts",
+    "start": "yarn build && NODE_ENV=prod node dist/index.js"
+  },
+  "dependencies": {
+    "cors": "2.8.5",
+    "dotenv": "16.0.3",
+    "express": "4.18.2",
+    "express-async-errors": "3.1.1"
+  },
+  "devDependencies": {
+    "@swc/core": "1.3.25",
+    "@swc/jest": "0.2.24",
+    "@types/cors": "2.8.13",
+    "@types/express": "4.17.15",
+    "@types/jest": "29.2.5",
+    "@types/node": "18.11.18",
+    "@types/supertest": "2.0.12",
+    "@typescript-eslint/eslint-plugin": "^5.48.1",
+    "@typescript-eslint/parser": "^5.48.1",
+    "eslint": "8.31.0",
+    "jest": "29.3.1",
+    "rimraf": "3.0.2",
+    "supertest": "6.3.3",
+    "typescript": "4.9.4"
+  }
+}
