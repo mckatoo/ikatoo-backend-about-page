@@ -3,7 +3,7 @@ import "express-async-errors";
 import express, { Request, Response } from "express";
 
 import routes from "./routes";
-import env from "./env";
+import env from "./helpers/env";
 import cors, { CorsOptions } from "cors";
 import { errorMiddleware } from "./middlewares/error";
 

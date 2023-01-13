@@ -1,4 +1,4 @@
-import { ApiError } from "@/api-erros";
+import { ApiError } from "@/helpers/api-erros";
 import { NextFunction, Request, Response } from "express";
 
 export const errorMiddleware = (
