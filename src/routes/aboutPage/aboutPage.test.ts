@@ -1,122 +1,118 @@
-import request from "supertest";
-import { generateString } from "../../generate";
+import createAboutPage from "@/aboutPagesRepository/createAboutPage";
+import database from "@/aboutPagesRepository/database";
+import getAboutPage from "@/aboutPagesRepository/getAboutPage";
 import app from "@/app";
+import { generateString } from "@/helpers/generate";
+import { randomUUID } from "crypto";
+import { IDatabase } from "pg-promise";
+import { IClient } from "pg-promise/typescript/pg-subset";
+import request from "supertest";
 
 describe("Express - About Page", () => {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  let db: IDatabase<{}, IClient>;
 
-  it("should create about page without id", async () => {
-    const userMock = {
-      id: generateString(),
-      name: generateString(),
-      username: generateString(),
-      email: `${generateString()}@katoo.com`,
-      password: "teste12345",
-      is_admin: false,
-      avatar_url: "",
-      avatar_alt: "",
-    };
-    // await createUserUseCase.execute(userMock)
-    const aboutPageMock = {
-      title: generateString(),
-      description: generateString(),
-      user_id: userMock.id,
-    };
-    const response = await request(app)
-      .post("/about")
-      // .set("Authorization", `Bearer ${accessToken}`)
-      .send(aboutPageMock);
-
-    expect(response.status).toBe(201);
-    expect(response.body).toEqual({
-      id: response.body.id,
-      ...aboutPageMock,
-      image: {
-        alt: "",
-        src: "",
-      },
-    });
+  beforeAll(async () => {
+    db = await database();
   });
 
-  it("should create about page with id", async () => {
+  afterAll(async () => {
+    await db.$pool.end();
+  });
+
+  it("should create about page", async () => {
     const aboutPageMock = {
-      id: generateString(),
       title: generateString(),
       description: generateString(),
-      user_id: generateString(),
+      skills: [
+        generateString(),
+        generateString(),
+        generateString(),
+        generateString(),
+        generateString(),
+      ],
+      userId: generateString(),
     };
-    const response = await request(app)
-      .post("/about")
-      // .set("Authorization", `Bearer ${accessToken}`)
-      .send(aboutPageMock);
-    // const aboutPage = await getAboutPageUseCase.getByUserId(
-    //   aboutPageMock.user_id
-    // )
 
+    const response = await request(app).post("/about").send(aboutPageMock);
     expect(response.status).toBe(201);
-    expect(response.body).toEqual({
-      // ...aboutPage,
-      image: {
-        alt: "",
-        src: "",
+
+    const createdAboutPage = await db.any(
+      "select * from aboutPages where user_id = $1",
+      [aboutPageMock.userId]
+    );
+    expect(createdAboutPage).toEqual([
+      {
+        id: createdAboutPage[0].id,
+        title: aboutPageMock.title,
+        description: aboutPageMock.description,
+        avatar_url: null,
+        avatar_alt: null,
+        user_id: aboutPageMock.userId,
       },
-    });
-    expect(response.body).toEqual({
-      ...aboutPageMock,
-      image: {
-        alt: "",
-        src: "",
-      },
-    });
+    ]);
   });
 
   it("should get about page data by user id", async () => {
-    const userMock = {
-      id: generateString(),
-      name: generateString(),
-      username: generateString(),
-      email: `${generateString()}@katoo.com`,
-      password: "teste12345",
-      is_admin: false,
-      avatar_url: "",
-      avatar_alt: "",
-    };
-    // await createUserUseCase.execute(userMock)
-
     const aboutPageMock = {
-      id: generateString(),
       title: generateString(),
       description: generateString(),
-      user_id: userMock.id,
+      skills: [generateString(), generateString()].sort(),
+      userId: randomUUID(),
     };
+    await createAboutPage(aboutPageMock);
 
-    // await createAboutPageUseCase.execute(aboutPageMock)
-    const response = await request(app).get(`/about/user_id/${userMock.id}`);
+    const { body, status } = await request(app).get(
+      `/about/user_id/${aboutPageMock.userId}`
+    );
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual(aboutPageMock);
+    expect(status).toBe(200);
+    expect(body).toEqual({
+      id: body.id,
+      title: body.title,
+      description: body.description,
+      skills: expect.arrayContaining(aboutPageMock.skills),
+      avatarURL: null,
+      avatarALT: null,
+      userId: body.userId,
+    });
   });
 
   it("should update about page", async () => {
     const aboutPageMock = {
-      id: generateString(),
       title: generateString(),
       description: generateString(),
-      user_id: generateString(),
+      skills: [generateString(), generateString(), generateString()],
+      userId: randomUUID(),
     };
+    await createAboutPage(aboutPageMock);
+    const { id } = await getAboutPage(aboutPageMock.userId);
+
     const newAboutPage = {
-      ...aboutPageMock,
+      id,
       title: `New Title ${generateString()}`,
       description: `New description ${generateString()}`,
+      skills: [`a${generateString()}`, `b${generateString()}`],
+      avatarURL: generateString(),
+      avatarALT: generateString(),
+      userId: aboutPageMock.userId,
     };
-    // await aboutPageRepository.create(aboutPageMock)
-    const response = await request(app)
-      .put("/about")
-      // .set("Authorization", `Bearer ${accessToken}`)
-      .send(newAboutPage);
 
-    // const aboutPage = await getAboutPageUseCase.getByUserId(aboutPageMock.user_id)
+    const response = await request(app).put("/about").send(newAboutPage);
 
     expect(response.status).toBe(201);
-    // expect(aboutPage).toEqual(newAboutPage)
+
+    const updatedAboutPage = await getAboutPage(aboutPageMock.userId);
+    expect(updatedAboutPage).toEqual(
+      expect.objectContaining({
+        id,
+        title: newAboutPage.title,
+        description: newAboutPage.description,
+        avatarURL: newAboutPage.avatarURL,
+        avatarALT: newAboutPage.avatarALT,
+        skills: expect.arrayContaining(newAboutPage.skills),
+        userId: aboutPageMock.userId,
+      })
+    );
   });
 });

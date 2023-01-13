@@ -8,8 +8,8 @@
     "build": "rimraf dist && swc src --out-dir dist",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint --fix src",
-    "test": "rimraf sqlite.db && NODE_ENV=test jest --no-cache ./src",
-    "test:coverage": "rimraf sqlite.db,coverage && NODE_ENV=test jest ./src --coverage",
+    "test": "NODE_ENV=test jest ./src",
+    "test:coverage": "rimraf coverage && NODE_ENV=test jest ./src --coverage",
     "dev": "NODE_ENV=test tsnd -r tsconfig-paths/register --watch src/ --respawn --transpile-only src/index.ts",
     "start": "yarn build && NODE_ENV=prod node dist/index.js"
   },
@@ -17,7 +17,8 @@
     "cors": "2.8.5",
     "dotenv": "16.0.3",
     "express": "4.18.2",
-    "express-async-errors": "3.1.1"
+    "express-async-errors": "3.1.1",
+    "pg-promise": "11.0.2"
   },
   "devDependencies": {
     "@swc/core": "1.3.25",
