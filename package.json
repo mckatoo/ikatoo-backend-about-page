@@ -21,6 +21,7 @@
     "pg-promise": "11.0.2"
   },
   "devDependencies": {
+    "@swc-node/register": "1.5.5",
     "@swc/core": "1.3.25",
     "@swc/jest": "0.2.24",
     "@types/cors": "2.8.13",
