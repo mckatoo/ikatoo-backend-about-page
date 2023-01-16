@@ -1,13 +1,15 @@
-import createAboutPage from "@/repository/aboutPagesRepository/createAboutPage";
-import getAboutPage, {
-  AboutPageWithID,
-} from "@/repository/aboutPagesRepository/getAboutPage";
-import updateAboutPage from "@/repository/aboutPagesRepository/updateAboutPage";
+import createAboutPage, {
+  AboutPageRepository,
+} from "@/repository/aboutPageRepository/createAboutPage";
+import getAboutPage from "@/repository/aboutPageRepository/getAboutPage";
+import updateAboutPage from "@/repository/aboutPageRepository/updateAboutPage";
 import createSkill from "@/repository/skillsRepository/createSkill";
-import getSkill, { SkillWithID } from "@/repository/skillsRepository/listSkill";
+import listSkill, {
+  SkillWithID,
+} from "@/repository/skillsRepository/listSkill";
 import { Request, Response, Router } from "express";
 
-export type AboutPageResponse = AboutPageWithID & { skills: SkillWithID[] };
+export type AboutPageResponse = AboutPageRepository & { skills: SkillWithID[] };
 
 const aboutPageRoute = Router();
 
@@ -29,19 +31,15 @@ aboutPageRoute.put("/about", async (req: Request, res: Response) => {
   res.status(201).send();
 });
 
-aboutPageRoute.get(
-  "/about/user_id/:userID",
-  async (req: Request, res: Response) => {
-    const { userID } = req.params;
-    const aboutPage = await getAboutPage(userID);
-    const skills = await getSkill(userID);
-    const aboutPageResponse: AboutPageResponse = {
-      ...aboutPage,
-      skills,
-    };
+aboutPageRoute.get("/about", async (_req: Request, res: Response) => {
+  const aboutPage = await getAboutPage();
+  const skills = await listSkill();
+  const aboutPageResponse: AboutPageResponse = {
+    ...aboutPage,
+    skills,
+  };
 
-    res.status(200).json(aboutPageResponse);
-  }
-);
+  res.status(200).json(aboutPageResponse);
+});
 
 export default aboutPageRoute;

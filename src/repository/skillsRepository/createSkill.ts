@@ -1,22 +1,20 @@
-import database from "../database";
 import { randomUUID } from "crypto";
+import database from "../database";
 
 export type SkillRepository = {
   title: string;
-  userID: string;
 };
 
 export default async (skill: SkillRepository): Promise<void> => {
   const db = await database();
   const titleExist = await db.oneOrNone(
-    "select * from skills where user_id = $1 and title = $2",
-    [skill.userID, skill.title]
+    "select * from skills where title = $1",
+    [skill.title]
   );
-  if (titleExist) throw new Error("This skill already exists for this user.");
+  if (titleExist) throw new Error("This skill already exists.");
 
-  await db.none("insert into skills (id, title, user_id) values ($1,$2,$3)", [
+  await db.none("insert into skills (id, title) values ($1, $2)", [
     randomUUID(),
     skill.title,
-    skill.userID,
   ]);
 };

@@ -3,7 +3,7 @@ import { IDatabase } from "pg-promise";
 import { IClient } from "pg-promise/typescript/pg-subset";
 import database from "../database";
 import createSkill from "./createSkill";
-import deleteSkill from "./deleteSkill";
+import deleteSkill from "./deleteSkills";
 import listSkill, { SkillWithID } from "./listSkill";
 import updateSkill from "./updateSkill";
 
@@ -22,47 +22,40 @@ describe("Skills repository", () => {
   it("Should insert skill data", async () => {
     const skillMock = {
       title: generateString(),
-      userID: generateString(),
     };
     await createSkill(skillMock);
 
-    const skill = await db.oneOrNone(
-      "select * from skills where user_id = $1",
-      [skillMock.userID]
-    );
+    const skill = await db.oneOrNone("select * from skills where title = $1", [
+      skillMock.title,
+    ]);
 
     expect(skill).toEqual({
       id: skill.id,
       title: skillMock.title,
-      user_id: skillMock.userID,
     });
   });
 
   it("Should not insert existent skill data", async () => {
     const skillMock = {
       title: generateString(),
-      userID: generateString(),
     };
     await createSkill(skillMock);
     await expect(createSkill(skillMock)).rejects.toThrowError(
-      /This skill already exists for this user/i
+      /This skill already exists/i
     );
   });
 
-  it("should list skills from userID", async () => {
-    const userID = generateString();
+  it("should list skills", async () => {
+    await db.none("delete from skills");
     const skillsMock = [
       {
         title: generateString(),
-        userID,
       },
       {
         title: generateString(),
-        userID,
       },
       {
         title: generateString(),
-        userID,
       },
     ];
 
@@ -70,42 +63,42 @@ describe("Skills repository", () => {
       await createSkill(skill);
     }
 
-    const produced = await listSkill(userID);
+    const produced = await listSkill();
 
-    produced.map(skill => {
-      expect(skill).toHaveProperty('id')
-    })
-    expect(skillsMock).toEqual(produced.map(skill => ({
-      title: skill.title,
-      userID: skill.userID
-    })));
+    produced.map((skill) => {
+      expect(skill).toHaveProperty("id");
+    });
+    expect(skillsMock).toEqual(
+      expect.arrayContaining(
+        produced.map((skill) => ({
+          title: skill.title,
+        }))
+      )
+    );
   });
 
   it("should update skill data", async () => {
     const db = await database();
     const skillMock = {
       title: generateString(),
-      userID: generateString(),
     };
     await createSkill(skillMock);
-    const skill = await db.one("select * from skills where user_id = $1", [
-      skillMock.userID,
+    const skill = await db.one("select * from skills where title = $1", [
+      skillMock.title,
     ]);
 
     const newSkillMock: SkillWithID = {
       id: skill.id,
       title: `new title - ${generateString()}`,
-      userID: skillMock.userID,
     };
     await updateSkill(newSkillMock);
-    const newSkill = await db.one("select * from skills where user_id = $1", [
-      skillMock.userID,
+    const newSkill = await db.one("select * from skills where id = $1", [
+      skill.id,
     ]);
 
     expect(newSkill).toEqual({
       id: skill.id,
       title: newSkillMock.title,
-      user_id: skillMock.userID,
     });
   });
 
@@ -113,28 +106,26 @@ describe("Skills repository", () => {
     // create a skill data for delete
     const skillMock = {
       title: generateString(),
-      userID: generateString(),
     };
     await createSkill(skillMock);
 
     // verify created skill
     const createdSkill = await db.oneOrNone(
-      "select * from skills where user_id = $1",
-      [skillMock.userID]
+      "select * from skills where title = $1",
+      [skillMock.title]
     );
     expect(createdSkill).toEqual({
       id: createdSkill.id,
       title: skillMock.title,
-      user_id: skillMock.userID,
     });
 
     // delete skill
-    await deleteSkill(skillMock.userID);
+    await deleteSkill(createdSkill.id);
 
-    // search skill by user_id
+    // search skill
     const deletedSkill = await db.oneOrNone(
-      "select * from skills where user_id = $1",
-      [skillMock.userID]
+      "select * from skills where title = $1",
+      [skillMock.title]
     );
 
     // search result to have been null
