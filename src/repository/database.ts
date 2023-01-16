@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import env from "@/helpers/env";
 import pgPromise from "pg-promise";
 
