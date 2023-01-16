@@ -2,12 +2,11 @@ import app from "@/app";
 import { generateString } from "@/helpers/generate";
 import createAboutPage, {
   AboutPageRepository,
-} from "@/repository/aboutPagesRepository/createAboutPage";
+} from "@/repository/aboutPageRepository/createAboutPage";
 import database from "@/repository/database";
 import createSkill, {
   SkillRepository,
 } from "@/repository/skillsRepository/createSkill";
-import { randomUUID } from "crypto";
 import { IDatabase } from "pg-promise";
 import { IClient } from "pg-promise/typescript/pg-subset";
 import request from "supertest";
@@ -25,12 +24,13 @@ describe("Express - About Page", () => {
   });
 
   it("should create about page", async () => {
+    await db.none("delete from aboutPage");
+    await db.none("delete from skills");
     const aboutPageMock: AboutPageRepository = {
       title: generateString(),
       description: generateString(),
       avatarURL: generateString(),
       avatarALT: generateString(),
-      userID: randomUUID(),
     };
     let skillsMock: SkillRepository[] = [];
     for (let index = 0; index < 5; index++) {
@@ -38,7 +38,6 @@ describe("Express - About Page", () => {
         ...skillsMock,
         {
           title: generateString(),
-          userID: aboutPageMock.userID,
         },
       ];
     }
@@ -48,40 +47,31 @@ describe("Express - About Page", () => {
       .send({ ...aboutPageMock, skills: skillsMock });
     expect(response.status).toBe(201);
 
-    const createdAboutPage = await db.any(
-      "select * from aboutPages where user_id = $1",
-      [aboutPageMock.userID]
-    );
-    const createdSkills = await db.any(
-      "select * from skills where user_id = $1",
-      [aboutPageMock.userID]
-    );
+    const createdAboutPage = await db.one("select * from aboutPage");
+    const createdSkills = await db.manyOrNone("select * from skills");
 
-    expect(createdAboutPage).toEqual([
-      {
-        id: createdAboutPage[0].id,
-        title: aboutPageMock.title,
-        description: aboutPageMock.description,
-        avatar_url: aboutPageMock.avatarURL,
-        avatar_alt: aboutPageMock.avatarALT,
-        user_id: aboutPageMock.userID,
-      },
-    ]);
-    expect(
-      createdSkills.map((skill) => ({
-        title: skill.title,
-        userID: skill.user_id,
-      }))
-    ).toEqual(skillsMock);
+    expect(createdAboutPage).toEqual({
+      title: aboutPageMock.title,
+      description: aboutPageMock.description,
+      avatar_url: aboutPageMock.avatarURL,
+      avatar_alt: aboutPageMock.avatarALT,
+    });
+
+    createdSkills.forEach((skill) => {
+      expect(
+        skillsMock.filter((_skill) => _skill.title === skill.title)
+      ).toHaveLength(1);
+    });
   });
 
-  it("should get about page data by user id", async () => {
+  it("should get about page data", async () => {
+    await db.none("delete from skills");
+
     const aboutPageMock: AboutPageRepository = {
       title: generateString(),
       description: generateString(),
       avatarURL: generateString(),
       avatarALT: generateString(),
-      userID: randomUUID(),
     };
     await createAboutPage(aboutPageMock);
 
@@ -89,40 +79,24 @@ describe("Express - About Page", () => {
     for (let index = 0; index < 5; index++) {
       const skill = {
         title: generateString(),
-        userID: aboutPageMock.userID,
       };
       skillsMock = [...skillsMock, skill];
       await createSkill(skill);
     }
-    const createdSkills = (
-      await db.manyOrNone("select * from skills where user_id = $1", [
-        aboutPageMock.userID,
-      ])
-    ).map((skill) => ({
-      id: skill.id,
-      title: skill.title,
-      userID: skill.user_id,
-    }));
+    const createdSkills = await db.manyOrNone("select * from skills");
 
-    const { body, status } = await request(app).get(
-      `/about/user_id/${aboutPageMock.userID}`
-    );
+    const { body, status } = await request(app).get("/about");
 
-    expect(skillsMock).toEqual(
-      createdSkills.map((skill) => ({
-        title: skill.title,
-        userID: skill.userID,
-      }))
-    );
     expect(status).toBe(200);
+    createdSkills.forEach((skill) => {
+      skillsMock.filter((_skill) => _skill.title === skill.title);
+    });
     expect(body).toEqual({
-      id: body.id,
       title: body.title,
       description: body.description,
       skills: createdSkills,
       avatarURL: body.avatarURL,
       avatarALT: body.avatarALT,
-      userID: body.userID,
     });
   });
 

@@ -3,7 +3,7 @@
     {
       "language": "typescript",
       "scheme": "file",
-      "pattern": "src/aboutPagesRepository/test.ts"
+      "pattern": "src/aboutPageRepository/test.ts"
     }
   ]
 }
